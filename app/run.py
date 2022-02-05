@@ -6,6 +6,9 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
+import nltk
+nltk.download(['punkt', 'wordnet', 'averaged_perceptron_tagger', 'stopwords'])
+
 from collections import Counter
 
 from flask import Flask

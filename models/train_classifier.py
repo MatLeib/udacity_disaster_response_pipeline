@@ -45,7 +45,7 @@ def load_data(database_filepath):
     
     # Selecting input variables, output variables and label names
     X = df.message.values
-        y = df.iloc[:,4:].values
+    y = df.iloc[:,4:].values
     category_names = df.iloc[:,4:].columns.tolist()
     
     return  X, y, category_names
