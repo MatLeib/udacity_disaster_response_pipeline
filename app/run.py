@@ -3,7 +3,10 @@ import plotly
 import pandas as pd
 
 from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+
+from collections import Counter
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -22,15 +25,18 @@ def tokenize(text):
     for tok in tokens:
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
         clean_tokens.append(clean_tok)
-
+        
+    clean_tokens = [word for word in clean_tokens if word not in stopwords.words("english")]
+    clean_tokens = [word for word in clean_tokens if word.isalnum()]
+    
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('Disasters', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -42,6 +48,25 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+    clf_counts_top = df.iloc[:,4:].sum().sort_values(ascending = False).head(10).values
+    clf_names_top = df.iloc[:,4:].sum().sort_values(ascending = False).head(10).index
+    clf_counts_bottom = df.iloc[:,4:].sum().sort_values(ascending = False).tail(10).values
+    clf_names_bottom = df.iloc[:,4:].sum().sort_values(ascending = False).tail(10).index
+    
+    token_list = df[df.weather_related==1].message.apply(tokenize)
+    word_list = []
+
+    for row_list in token_list:
+        for element in row_list:
+            word_list.append(element)
+            
+    weather_top10 = Counter(word_list).most_common(10)
+    weather_top10_words = []
+    weather_top10_counts = []
+    
+    for weather_tuple in weather_top10:
+        weather_top10_words.append(weather_tuple[0])
+        weather_top10_counts.append(weather_tuple[1])
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -61,6 +86,60 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+       {
+            'data': [
+                Bar(
+                    x=clf_names_top,
+                    y=clf_counts_top
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 Message Classifications',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Classification"
+                }
+            }
+        },
+       {
+            'data': [
+                Bar(
+                    x=clf_names_bottom,
+                    y=clf_counts_bottom
+                )
+            ],
+
+            'layout': {
+                'title': 'Bottom 10 Message Classifications',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Classification"
+                }
+            }
+        },
+       {
+            'data': [
+                Bar(
+                    x=weather_top10_words,
+                    y=weather_top10_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 weather related words',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Word"
                 }
             }
         }
@@ -93,7 +172,7 @@ def go():
 
 
 def main():
-    app.run(host='0.0.0.0', port=3001, debug=True)
+    app.run(host='0.0.0.0', port=3000, debug=True)
 
 
 if __name__ == '__main__':
